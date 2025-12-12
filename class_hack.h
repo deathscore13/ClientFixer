@@ -1,15 +1,16 @@
 ﻿#pragma once
 
-// call function
-template <typename FuncType>
-__forceinline static FuncType __call(void* ptr, int offset)
+// call method
+template <typename T, uintptr_t offset>
+__forceinline static T __call(void* ptr)
 {
-    return (FuncType)((*(int**)ptr)[offset / 4]);
+    static_assert(offset % sizeof(uintptr_t) == 0);
+    return reinterpret_cast<T>((*reinterpret_cast<uintptr_t**>(ptr))[offset / sizeof(uintptr_t)]);
 }
 
 // get property
-template <typename PropType>
-__forceinline static PropType& __property(void* ptr, int offset)
+template <typename T, uintptr_t offset>
+__forceinline static T& __property(void* ptr)
 {
-    return *reinterpret_cast<PropType*>(reinterpret_cast<uintptr_t*>(ptr) + offset * 4);
+    return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t*>(ptr) + offset * sizeof(uintptr_t));
 }

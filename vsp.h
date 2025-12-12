@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#define VSP_NAME    ChatFixer
-#define VSP_VERSION "2.1.0"
+#define VSP_NAME    ClientFixer
+#define VSP_VERSION "2.2.0"
 
 #define TO_STRING_EX(param)         #param
 #define TO_STRING(param)            TO_STRING_EX(param)  
@@ -16,15 +16,27 @@
 #define Report(pMsg, ...)   Error(pMsg REPORT_SUFFIX, __VA_ARGS__)
 
 
+#include "hooks.h"
 #include "icvar.h"
 #include "sigscan.h"
 
-extern CSigScan *client, *engine;
-extern ICvar *s_pCVar;
+extern CSigScan* client;
+extern CSigScan* engine;
 
-#define CSigScan_Find(ptr, name, out) \
-    if ((out = ptr->Find((const unsigned char*)name ## _SIGNATURE, (const unsigned char*)name ## _MASK)) == nullptr) \
+extern ICvar* s_pCVar;
+
+#define CSigScan_Find(ptr, name) \
+    name##A = reinterpret_cast<decltype(name##A)>(ptr->Find((const BYTE*)name##_SIGNATURE, (const BYTE*)name##_MASK)); \
+    if (name##A == nullptr) \
     { \
-        Report("Unable to get " #name "() address\n"); \
+        Report("Unable to get " #name " address\n"); \
+        return false; \
+    }
+
+#define CHook_Init(name) \
+    name##H = new CHook(name, name##A); \
+    if (!name##H->Hook()) \
+    { \
+        Report("Unable to hook " #name "\n"); \
         return false; \
     }

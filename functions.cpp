@@ -1,10 +1,10 @@
 ﻿#include "signatures.h"
 #include "vsp.h"
 
-void *Con_ColorPrintf;
+SigScanAddr Con_ColorPrintfA = nullptr;
 
 bool Functions_Load()
 {
-    CSigScan_Find(engine, Con_ColorPrintf, Con_ColorPrintf);
+    CSigScan_Find(engine, Con_ColorPrintf);
     return true;
 }

@@ -1,5 +1,4 @@
 ﻿#include "functions.h"
-#include "hooks.h"
 #include "hud_basechat_2013.h"
 #include "signatures.h"
 #include "vsp.h"
@@ -7,46 +6,44 @@
 // hl2sdk-episode1
 #include "strtools.cpp"
 
-void *StartMessageMode, *StopMessageMode, *InsertAndColorizeText,
-    *SetText, *InsertString, *InsertString2, *InsertColorChange, *InsertFade;
-CHook *StartMessageMode_h = nullptr, *StopMessageMode_h = nullptr, *InsertAndColorizeText_h = nullptr;
-ConVar *con_enable = nullptr, *hud_saytext_time = nullptr;
+void(__fastcall* CBaseHudChat_StartMessageModeA)(void*, void*, int) = nullptr;
+void(__fastcall* CBaseHudChat_StopMessageModeA)(void*, void*)       = nullptr;
+void(__fastcall* CBaseHudChatLine_InsertAndColorizeTextA)(void*, void*, wchar_t*, int) = nullptr;
+void(__thiscall* RichText_SetTextA)(void*, const char*)             = nullptr;
+void(__thiscall* RichText_InsertStringA)(void*, const char*)        = nullptr;
+void(__thiscall* RichText_InsertString2A)(void*, const wchar_t*)    = nullptr;
+void(__thiscall* RichText_InsertColorChangeA)(void*, Color)         = nullptr;
+void(__thiscall* RichText_InsertFadeA)(void*, float, float)         = nullptr;
+
+CHook* CBaseHudChat_StartMessageModeH = nullptr;
+CHook* CBaseHudChat_StopMessageModeH = nullptr;
+CHook* CBaseHudChatLine_InsertAndColorizeTextH = nullptr;
+
+ConVar* con_enable = nullptr, * hud_saytext_time = nullptr;
 float con_enable_buffer = 0.0;
 
-void con_enable_callback(ConVar *var, char const *pOldString);
+void con_enable_callback(ConVar* var, char const* pOldString);
+
+// https://gitlab.com/evilcrydie/source-sdk-2013/-/blob/main/src/game/client/hud_basechat.h#L148
+void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_textRanges, int alpha = 255);
 
 bool BaseChat_Load()
 {
-    CSigScan_Find(client, CBaseHudChat_StartMessageMode, StartMessageMode);
-    CSigScan_Find(client, CBaseHudChat_StopMessageMode, StopMessageMode);
+    CSigScan_Find(client, CBaseHudChat_StartMessageMode);
+    CSigScan_Find(client, CBaseHudChat_StopMessageMode);
 
-    CSigScan_Find(client, CBaseHudChatLine_InsertAndColorizeText, InsertAndColorizeText);
-    CSigScan_Find(client, RichText_SetText, SetText);
-    CSigScan_Find(client, RichText_InsertString, InsertString);
-    CSigScan_Find(client, RichText_InsertString2, InsertString2);
-    CSigScan_Find(client, RichText_InsertColorChange, InsertColorChange);
-    CSigScan_Find(client, RichText_InsertFade, InsertFade);
+    CSigScan_Find(client, CBaseHudChatLine_InsertAndColorizeText);
+    CSigScan_Find(client, RichText_SetText);
+    CSigScan_Find(client, RichText_InsertString);
+    CSigScan_Find(client, RichText_InsertString2);
+    CSigScan_Find(client, RichText_InsertColorChange);
+    CSigScan_Find(client, RichText_InsertFade);
 
-    StartMessageMode_h = new CHook(CBaseHudChat__StartMessageMode_h, StartMessageMode);
-    if (!StartMessageMode_h->Hook())
-    {
-        Report("!StartMessageMode_h->Hook()\n");
-        return false;
-    }
 
-    StopMessageMode_h = new CHook(CBaseHudChat__StopMessageMode_h, StopMessageMode);
-    if (!StopMessageMode_h->Hook())
-    {
-        Report("!StopMessageMode_h->Hook()\n");
-        return false;
-    }
+    CHook_Init(CBaseHudChat_StartMessageMode);
+    CHook_Init(CBaseHudChat_StopMessageMode);
+    CHook_Init(CBaseHudChatLine_InsertAndColorizeText);
 
-    InsertAndColorizeText_h = new CHook(CBaseHudChatLine__InsertAndColorizeText_h, InsertAndColorizeText);
-    if (!InsertAndColorizeText_h->Hook())
-    {
-        Report("!InsertAndColorizeText_h->Hook()\n");
-        return false;
-    }
 
     con_enable = s_pCVar->FindVar("con_enable");
     if (con_enable == nullptr)
@@ -63,90 +60,87 @@ bool BaseChat_Load()
 
 void BaseChat_Unload()
 {
-    if (StartMessageMode_h)
+    if (CBaseHudChat_StartMessageModeH)
     {
-        delete StartMessageMode_h;
-        StartMessageMode_h = nullptr;
+        delete CBaseHudChat_StartMessageModeH;
+        CBaseHudChat_StartMessageModeH = nullptr;
     }
 
-    if (StopMessageMode_h)
+    if (CBaseHudChat_StopMessageModeH)
     {
-        delete StopMessageMode_h;
-        StopMessageMode_h = nullptr;
+        delete CBaseHudChat_StopMessageModeH;
+        CBaseHudChat_StopMessageModeH = nullptr;
     }
 
-    if (InsertAndColorizeText_h)
+    if (CBaseHudChatLine_InsertAndColorizeTextH)
     {
-        delete InsertAndColorizeText_h;
-        InsertAndColorizeText_h = nullptr;
+        delete CBaseHudChatLine_InsertAndColorizeTextH;
+        CBaseHudChatLine_InsertAndColorizeTextH = nullptr;
     }
 }
 
 void BaseChat_Pause()
 {
-    if (StartMessageMode_h->IsHooked() && !StartMessageMode_h->Unhook())
-        Report("Pause: !StartMessageMode_h->Unhook()\n");
+    if (CBaseHudChat_StartMessageModeH->IsHooked() && !CBaseHudChat_StartMessageModeH->Unhook())
+        Report("Pause: !CBaseHudChat_StartMessageModeH->Unhook()\n");
 
-    if (StopMessageMode_h->IsHooked() && !StopMessageMode_h->Unhook())
-        Report("Pause: !StopMessageMode_h->Unhook()\n");
+    if (CBaseHudChat_StopMessageModeH->IsHooked() && !CBaseHudChat_StopMessageModeH->Unhook())
+        Report("Pause: !CBaseHudChat_StopMessageModeH->Unhook()\n");
 
-    if (InsertAndColorizeText_h->IsHooked() && !InsertAndColorizeText_h->Unhook())
-        Report("Pause: !InsertAndColorizeText_h->Unhook()\n");
+    if (CBaseHudChatLine_InsertAndColorizeTextH->IsHooked() && !CBaseHudChatLine_InsertAndColorizeTextH->Unhook())
+        Report("Pause: !CBaseHudChatLine_InsertAndColorizeTextH->Unhook()\n");
 }
 
 void BaseChat_UnPause()
 {
-    if (!StartMessageMode_h->IsHooked() && !StartMessageMode_h->Hook())
-        Report("UnPause: !StartMessageMode_h->Hook()\n");
+    if (!CBaseHudChat_StartMessageModeH->IsHooked() && !CBaseHudChat_StartMessageModeH->Hook())
+        Report("UnPause: !CBaseHudChat_StartMessageModeH->Hook()\n");
 
-    if (!StopMessageMode_h->IsHooked() && !StopMessageMode_h->Hook())
-        Report("UnPause: !StopMessageMode_h->Hook()\n");
+    if (!CBaseHudChat_StopMessageModeH->IsHooked() && !CBaseHudChat_StopMessageModeH->Hook())
+        Report("UnPause: !CBaseHudChat_StopMessageModeH->Hook()\n");
 
-    if (!InsertAndColorizeText_h->IsHooked() && !InsertAndColorizeText_h->Hook())
-        Report("UnPause: !InsertAndColorizeText_h->Hook()\n");
+    if (!CBaseHudChatLine_InsertAndColorizeTextH->IsHooked() && !CBaseHudChatLine_InsertAndColorizeTextH->Hook())
+        Report("UnPause: !CBaseHudChatLine_InsertAndColorizeTextH->Hook()\n");
 
     con_enable_buffer = con_enable->GetFloat();
 }
 
 // https://gitlab.com/evilcrydie/SourceEngine2007/-/blob/master/src_main/game/client/hud_basechat.cpp#L1130
-void __fastcall CBaseHudChat__StartMessageMode_h(void* ecx, void* edx, int iMessageModeType)
+void __fastcall CBaseHudChat_StartMessageMode(void* ecx, void* edx, int iMessageModeType)
 {
-    StartMessageMode_h->Unhook();
+    CBaseHudChat_StartMessageModeH->Unhook();
 
     con_enable_buffer = con_enable->GetFloat();
     con_enable->SetValue(0);
+    CBaseHudChat_StartMessageModeA(ecx, edx, iMessageModeType);
 
-    CBaseHudChat__StartMessageMode(ecx, edx, iMessageModeType);
-
-    StartMessageMode_h->Hook();
+    CBaseHudChat_StartMessageModeH->Hook();
 }
 
 // https://gitlab.com/evilcrydie/SourceEngine2007/-/blob/master/src_main/game/client/hud_basechat.cpp#L1182
-void __fastcall CBaseHudChat__StopMessageMode_h(void* ecx, void* edx)
+void __fastcall CBaseHudChat_StopMessageMode(void* ecx, void* edx)
 {
-    StopMessageMode_h->Unhook();
+    CBaseHudChat_StopMessageModeH->Unhook();
 
     con_enable->SetValue(con_enable_buffer);
+    CBaseHudChat_StopMessageModeA(ecx, edx);
 
-    CBaseHudChat__StopMessageMode(ecx, edx);
-
-    StopMessageMode_h->Hook();
+    CBaseHudChat_StopMessageModeH->Hook();
 }
 
 
 // https://gitlab.com/evilcrydie/source-sdk-2013/-/blob/main/src/game/client/hud_basechat.cpp#L1403
-void __fastcall CBaseHudChatLine__InsertAndColorizeText_h(void* ecx, void* edx, wchar_t* buf, int clientIndex)
+void __fastcall CBaseHudChatLine_InsertAndColorizeText(void* ecx, void* edx, wchar_t* buf, int clientIndex)
 {
     // create property
-    int& m_iNameLength = __property<int>(ecx, 93);
-    int& m_iNameStart = __property<int>(ecx, 104);
+    int& m_iNameLength = __property<int, 93>(ecx);
+    int& m_iNameStart = __property<int, 104>(ecx);
 
 
     wchar_t* m_text = CloneWString(buf);
     CUtlVector<TextRange> m_textRanges;
     m_textRanges.RemoveAll();
-
-    CBaseHudChat* pChat = dynamic_cast<CBaseHudChat*>(CBaseHudChat__GetParent(ecx));
+    CBaseHudChat* pChat = dynamic_cast<CBaseHudChat*>(CBaseHudChat_GetParent(ecx));
     if (pChat == nullptr)
     {
         delete[] m_text;
@@ -179,7 +173,7 @@ void __fastcall CBaseHudChatLine__InsertAndColorizeText_h(void* ecx, void* edx, 
                 // save this start
                 range.start = nBytesIn + 1;
                 //range.color = pChat->GetTextColorForClient((TextColor)(*txt), clientIndex);
-                CBaseHudChat__GetTextColorForClient(pChat, range.color, (TextColor)(*txt), clientIndex);
+                CBaseHudChat_GetTextColorForClient(pChat, range.color, (TextColor)(*txt), clientIndex);
                 range.end = lineLen;
                 bFoundColorCode = true;
             }
@@ -189,7 +183,7 @@ void __fastcall CBaseHudChatLine__InsertAndColorizeText_h(void* ecx, void* edx, 
             case COLOR_HEXCODE_ALPHA:
             {
                 bool bReadAlpha = (*txt == COLOR_HEXCODE_ALPHA);
-                const int nCodeBytes = (bReadAlpha?8:6);
+                const int nCodeBytes = (bReadAlpha ? 8 : 6);
                 range.start = nBytesIn + nCodeBytes + 1;
                 range.end = lineLen;
                 range.preserveAlpha = bReadAlpha;
@@ -248,19 +242,19 @@ void __fastcall CBaseHudChatLine__InsertAndColorizeText_h(void* ecx, void* edx, 
         range.start = 0;
         range.end = m_iNameStart;
         //range.color = pChat->GetTextColorForClient(COLOR_NORMAL, clientIndex);
-        CBaseHudChat__GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
+        CBaseHudChat_GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
         m_textRanges.AddToTail(range);
 
         range.start = m_iNameStart;
         range.end = m_iNameStart + m_iNameLength;
         //range.color = pChat->GetTextColorForClient(COLOR_PLAYERNAME, clientIndex);
-        CBaseHudChat__GetTextColorForClient(pChat, range.color, COLOR_PLAYERNAME, clientIndex);
+        CBaseHudChat_GetTextColorForClient(pChat, range.color, COLOR_PLAYERNAME, clientIndex);
         m_textRanges.AddToTail(range);
 
         range.start = range.end;
         range.end = wcslen(m_text);
         // range.color = pChat->GetTextColorForClient(COLOR_NORMAL, clientIndex);
-        CBaseHudChat__GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
+        CBaseHudChat_GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
         m_textRanges.AddToTail(range);
     }
 
@@ -270,7 +264,7 @@ void __fastcall CBaseHudChatLine__InsertAndColorizeText_h(void* ecx, void* edx, 
         range.start = 0;
         range.end = wcslen(m_text);
         // range.color = pChat->GetTextColorForClient( COLOR_NORMAL, clientIndex );
-        CBaseHudChat__GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
+        CBaseHudChat_GetTextColorForClient(pChat, range.color, COLOR_NORMAL, clientIndex);
         m_textRanges.AddToTail(range);
     }
 
@@ -303,7 +297,7 @@ void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_tex
     if (pChat && (m_pChatHistory = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(pChat) + 252)))
     {
         // pChat->GetChatHistory()->InsertString("\n");
-        RichText__InsertString(m_pChatHistory, "\n");
+        RichText_InsertStringA(m_pChatHistory, "\n");
     }
 
     wchar_t wText[4096];
@@ -331,9 +325,9 @@ void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_tex
             if (pChat && m_pChatHistory)
             {
                 // pChat->GetChatHistory()->InsertColorChange(color);
-                RichText__InsertColorChange(m_pChatHistory, color);
+                RichText_InsertColorChangeA(m_pChatHistory, color);
                 // pChat->GetChatHistory()->InsertString(wText);
-                RichText__InsertString2(m_pChatHistory, wText);
+                RichText_InsertString2A(m_pChatHistory, wText);
 
                 if (hud_saytext_time == nullptr)
                 {
@@ -344,7 +338,7 @@ void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_tex
                     else
                     {
                         // pChat->GetChatHistory()->InsertFade(hud_saytext_time.GetFloat(), CHAT_HISTORY_IDLE_FADE_TIME);
-                        RichText__InsertFade(m_pChatHistory, hud_saytext_time->GetFloat(),
+                        RichText_InsertFadeA(m_pChatHistory, hud_saytext_time->GetFloat(),
                             CHAT_HISTORY_IDLE_FADE_TIME);
                     }
                 }
@@ -352,7 +346,7 @@ void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_tex
                 if (i == m_textRanges.Count() - 1)
                 {
                     // pChat->GetChatHistory()->InsertFade(-1, -1);
-                    RichText__InsertFade(m_pChatHistory, -1, -1);
+                    RichText_InsertFadeA(m_pChatHistory, -1, -1);
                 }
             }
 
@@ -362,14 +356,14 @@ void Colorize(CBaseHudChat* pChat, wchar_t* m_text, CUtlVector<TextRange>& m_tex
 
     // InvalidateLayout(true);
     // https://gitlab.com/evilcrydie/source-sdk-2013/-/blob/main/src/public/vgui_controls/Panel.h#L323
-    //RichText__InvalidateLayout(ecx, true, false);
+    //__call<void(__thiscall*)(void*, bool, bool), 240>(ecx)(ecx, true, false)
     delete[] m_text;
 }
 
-void con_enable_callback(ConVar *var, char const *pOldString)
+void con_enable_callback(ConVar* var, char const* pOldString)
 {
-    if (!StartMessageMode_h || !StopMessageMode_h ||
-        !(StartMessageMode_h->IsHooked() && StopMessageMode_h->IsHooked()))
+    if (!CBaseHudChat_StartMessageModeH || !CBaseHudChat_StopMessageModeH ||
+        !(CBaseHudChat_StartMessageModeH->IsHooked() && CBaseHudChat_StopMessageModeH->IsHooked()))
         return;
 
     con_enable_buffer = var->GetFloat();

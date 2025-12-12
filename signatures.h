@@ -54,3 +54,13 @@
 // B8 ? ? ? ? E8 56 1A 23 00
 #define Con_ColorPrintf_SIGNATURE "\xB8\x2A\x2A\x2A\x2A\xE8\x56\x1A\x23\x00"
 #define Con_ColorPrintf_MASK "x????xxxxx"
+
+// void plugin_pause()
+// E8 AB 2A ED FF
+#define plugin_pause_SIGNATURE "\xE8\xAB\x2A\xED\xFF"
+#define plugin_pause_MASK "xxxxx"
+
+// void plugin_unpause()
+// E8 4B 2A ED FF
+#define plugin_unpause_SIGNATURE "\xE8\x4B\x2A\xED\xFF"
+#define plugin_unpause_MASK "xxxxx"

@@ -2,18 +2,17 @@
 
 #include <Windows.h>
 
+typedef void* SigScanAddr;
+
 class CSigScan
 {
 private:
-    BYTE *addr;
+    BYTE* addr;
     size_t len;
 
-    CSigScan(BYTE *addr, size_t len): addr(addr), len(len)
-    {
-    }
+    CSigScan(BYTE* address, size_t length);
 
 public:
-
-    static CSigScan *Create(void *interfaceFn);
-    void *Find(const unsigned char *sig, const unsigned char *mask);
+    static CSigScan* Create(void* interfaceFn);
+    SigScanAddr Find(const BYTE* sig, const BYTE* mask);
 };

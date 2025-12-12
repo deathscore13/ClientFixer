@@ -21,13 +21,15 @@ bool CHook::Hook()
 {
     if (hooked)
         return true;
-    
+
     DWORD oldProtect;
     if (!VirtualProtect(address, sizeof(jmp), PAGE_EXECUTE_READWRITE, &oldProtect))
         return false;
 
     memcpy(oldBytes, address, sizeof(jmp));
     memcpy(address, jmp, sizeof(jmp));
+
+    VirtualProtect(address, sizeof(jmp), oldProtect, &oldProtect);
     hooked = true;
 
     return true;
@@ -37,12 +39,14 @@ bool CHook::Unhook()
 {
     if (!hooked)
         return true;
-    
+
     DWORD oldProtect;
     if (!VirtualProtect(address, sizeof(jmp), PAGE_EXECUTE_READWRITE, &oldProtect))
         return false;
 
     memcpy(address, oldBytes, sizeof(jmp));
+
+    VirtualProtect(address, sizeof(jmp), oldProtect, &oldProtect);
     hooked = false;
 
     return true;

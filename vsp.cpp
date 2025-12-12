@@ -1,8 +1,11 @@
 ﻿#include "functions.h"
 #include "hud_basechat_2013.h"
+#include "sv_plugin.h"
 #include "vsp.h"
 
-CSigScan *client, *engine;
+CSigScan* client = nullptr;
+CSigScan* engine = nullptr;
+
 ICvar* s_pCVar = nullptr;
 
 // hl2sdk-episode1
@@ -13,12 +16,12 @@ class VSP_NAME: public IServerPluginCallbacks
 public:
     // IServerPluginCallbacks
     virtual bool Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory);
-    virtual void Unload(void);
+    virtual void Unload();
 
-    virtual void Pause(void);
-    virtual void UnPause(void);
+    virtual void Pause();
+    virtual void UnPause();
 
-    virtual const char *GetPluginDescription(void);
+    virtual const char* GetPluginDescription();
 };
 
 VSP_NAME VSP_SUFFIX(g_);
@@ -54,25 +57,28 @@ bool VSP_NAME::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameSe
     if (!Functions_Load())
         return false;
 
+    if (!sv_plugin_Load())
+        return false;
+
     return true;
 }
 
-void VSP_NAME::Unload(void)
+void VSP_NAME::Unload()
 {
     BaseChat_Unload();
 }
 
-void VSP_NAME::Pause(void)
+void VSP_NAME::Pause()
 {
     BaseChat_Pause();
 }
 
-void VSP_NAME::UnPause(void)
+void VSP_NAME::UnPause()
 {
     BaseChat_UnPause();
 }
 
-const char* VSP_NAME::GetPluginDescription(void)
+const char* VSP_NAME::GetPluginDescription()
 {
     return TO_STRING(VSP_NAME) " " VSP_VERSION " (" GITHUB_REPOSITORY ")";
 }

@@ -112,31 +112,24 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>cd "$(ProjectDir)"
+      <Command>
 
-
-if not exist "cstrike\addons" (
-
-  echo Создание 'cstrike\addons'...
-
-
-  md cstrike\addons
-
-
-)
+if not exist "cstrike\addons" md cstrike\addons
 
 
 
 
 
-echo Копирование объектов
+copy ClientFixer.vdf cstrike\addons\ClientFixer.vdf
+copy "$(TargetPath)" cstrike\addons\ClientFixer.dll
 
 
-copy ChatFixer.vdf cstrike\addons\ChatFixer.vdf
-copy "$(TargetPath)" cstrike\addons\ChatFixer.dll
+
+if defined CSSOLDDIR xcopy "cstrike" "$(CSSOLDDIR)"\cstrike /E /Y
 
 
-</Command>
+
+tar -czf ClientFixerD.tar.gz cstrike\*</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -190,35 +183,25 @@ copy "$(TargetPath)" cstrike\addons\ChatFixer.dll
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>cd "$(ProjectDir)"
+      <Command>
 
-
-if not exist "cstrike\addons" (
-
-  echo Создание 'cstrike\addons'...
-
-
-  md cstrike\addons
-
-
-)
+if not exist "cstrike\addons" md cstrike\addons
 
 
 
 
 
-echo Копирование объектов
 
-
-copy ChatFixer.vdf cstrike\addons\ChatFixer.vdf
-copy "$(TargetPath)" cstrike\addons\ChatFixer.dll
+copy ClientFixer.vdf cstrike\addons\ClientFixer.vdf
+copy "$(TargetPath)" cstrike\addons\ClientFixer.dll
 
 
 
-echo Создание ChatFixer.tar.gz...
+if defined CSSOLDDIR xcopy "cstrike" "$(CSSOLDDIR)"\cstrike /E /Y
 
 
-tar -czf ChatFixer.tar.gz cstrike\*</Command>
+
+tar -czf ClientFixer.tar.gz cstrike\*</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -226,6 +209,7 @@ tar -czf ChatFixer.tar.gz cstrike\*</Command>
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="hud_basechat_2013.cpp" />
     <ClCompile Include="sigscan.cpp" />
+    <ClCompile Include="sv_plugin.cpp" />
     <ClCompile Include="vsp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -233,8 +217,10 @@ tar -czf ChatFixer.tar.gz cstrike\*</Command>
     <ClInclude Include="functions.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="hud_basechat_2013.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="signatures.h" />
     <ClInclude Include="sigscan.h" />
+    <ClInclude Include="sv_plugin.h" />
     <ClInclude Include="vsp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
