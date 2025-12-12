@@ -217,7 +217,6 @@ tar -czf ClientFixer.tar.gz cstrike\*</Command>
     <ClInclude Include="functions.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="hud_basechat_2013.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="signatures.h" />
     <ClInclude Include="sigscan.h" />
     <ClInclude Include="sv_plugin.h" />
